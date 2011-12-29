@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Canvas Hangman</title>
+	<meta charset="utf-8">
+</head>
+<br /><br />
+<body>
+</body>
+
+<script type="text/javascript">
+window.onload = function() {
+
+var canvas = document.createElement('CANVAS');
+document.body.appendChild(canvas);
+canvas.width = 400;
+canvas.height = 100;
+
+var ctx = canvas.getContext('2d');
+var mistakes = 0;
+var word = "";
+var answer = "";
+var state = "word";
+var maxChars = 15;
+
+function reset() {
+	ctx = canvas.getContext('2d');
+	ctx.font = "10pt 'fixed'";
+	mistakes = 0;
+	word = "";
+	answer = "";
+	state = "word";
+}
+
+function playGame() {
+	ctx.clearRect(0,0,400,100);
+	switch(state) {
+		case 'word':
+			drawMan(mistakes);
+			drawWordDialog();
+			break;
+		case 'answer':
+			drawMan(mistakes);
+			drawAnswerDialog();
+			break;
+		case 'win':
+			drawMan(mistakes);
+			drawWinDialog();
+			drawContinueButton();
+			break;
+		case 'lose':
+			drawMan(mistakes);
+			drawLoseDialog();
+			drawContinueButton();
+			break;
+	}
+}
+
+function changeState(toState) {
+	state = toState;
+	playGame();
+}
+
+function drawWinDialog(onWordEntered) {
+	ctx.fillStyle = "green";
+	ctx.fillText("You win!",100,40);
+	drawWord(word);
+}
+
+function drawLoseDialog(onWordEntered) {
+	ctx.fillStyle = "red";
+	ctx.fillText("You lose!",100,40);
+	drawWord(word);
+}
+
+function drawContinueButton() {
+	ctx.fillText("Again!",100,60);
+	canvas.onclick = function(event) {
+		relativeX = canvas.offsetLeft;
+		relativeY = canvas.offsetTop;
+		ev = event; // || canvas.event;
+		coords = {x:ev.pageX-relativeX, y:ev.pageY-relativeY};
+		if(coords.x > 100 && coords.x < 140 && coords.y > 50 && coords.y < 60) {
+			reset();
+			changeState('word');
+		}
+	}
+}
+
+function drawWordDialog(onWordEntered) {
+	ctx.fillStyle = "black";
+	ctx.fillText("Type the correct answer (max chars:6)",100,40);
+	drawWord(word);
+	document.onkeypress = function(char) {
+		var c = getValidChar(char.charCode);
+		if(c) {
+			c = c.charAt(0);
+			word += c;
+			answer += (c===' ') ? c : "_";
+		}
+		if(char.keyCode === 8) {
+			word = word.substr(0,word.length-1);
+			answer = answer.substr(0,answer.length-1);
+		}
+		if(char.keyCode === 13 || word.length >= maxChars) {
+			document.onkeypress = null;
+			changeState('answer');
+			return false;
+		}
+		changeState('word');
+	}
+}
+
+function getValidChar(charCode) {
+	return String.fromCharCode(charCode).replace(/[^a-zA-ZäöüÄÖÜß ]/,'') || "";
+}
+
+function drawWord(word) {
+	ctx.fillText(word,110,50);
+}
+
+function drawAnswerDialog() {
+	ctx.fillStyle = "black";
+	ctx.fillText("Guess a character",100,40);
+	drawWord(answer);
+	document.onkeypress = function(char) {
+		var c = getValidChar(char.charCode);
+		if(c) {
+			var nextState = 'answer';
+			if(!suggestChar(c)) {
+				mistakes++;
+			} else if(answer.match(/_/) === null) {
+				document.onkeypress = null;
+				nextState = 'win';
+			}
+			if(mistakes >= 6) {
+				document.onkeypress = null;
+				nextState = 'lose';
+			}
+			changeState(nextState);
+		}
+	}
+}
+
+function suggestChar(char) {
+	var match = false;
+	var newAnswer = "";
+	for(var i=0;i<word.length;i++) {
+		if(word.charAt(i) === char && answer.charAt(i) !== char) {
+			newAnswer += char;
+			match = true;
+		} else {
+			newAnswer += answer.charAt(i);
+		}
+	}
+	answer = newAnswer;
+	return match; 
+}
+
+function drawMan(fails) {
+	fails = Math.min(6,Math.abs(fails));
+	// uses "fall thru" of switch statement
+	switch(fails) {
+		case 6:
+			drawPart(6);
+		case 5:
+			drawPart(5);
+		case 4:
+			drawPart(4);
+		case 3:
+			drawPart(3);
+		case 2:
+			drawPart(2);
+		case 1:
+			drawPart(1);
+		default:
+			drawGibbet();
+	}
+}
+
+function drawGibbet() {
+	with(ctx) {
+		beginPath();
+		moveTo(60,90);
+		lineTo(10,90);
+		lineTo(10,10);
+		lineTo(40,10);
+		lineTo(40,25);
+		moveTo(10,20);
+		lineTo(20,10);
+		ctx.stroke(); 
+	}
+}
+
+function drawPart(num) {
+	var config = [
+		{},
+		{x:40,y:30,type:'circle',radius:5},
+		{x:40,y:35,type:'stroke',to:{x:40,y:50}},
+		{x:40,y:37,type:'stroke',to:{x:30,y:45}},
+		{x:40,y:37,type:'stroke',to:{x:50,y:45}},
+		{x:40,y:50,type:'stroke',to:{x:50,y:70}},
+		{x:40,y:50,type:'stroke',to:{x:30,y:70}}
+	];
+	// draw part of man
+	c = config[num];
+	ctx.beginPath();
+	if(c.type === 'stroke') {
+		ctx.moveTo(c.x, c.y);
+		ctx.lineTo(c.to.x,c.to.y);
+	} else if(c.type === 'circle') {
+		ctx.arc(c.x,c.y,c.radius,0,180,false);
+	}
+       	ctx.stroke(); 
+}
+
+reset();
+playGame();
+
+};
+
+</script>
+</html>
